@@ -1,0 +1,2 @@
+include ':icicle-core'
+include ':icicle-jedis'

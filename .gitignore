@@ -1,0 +1,9 @@
+*.iml
+*.ipr
+*.iws
+
+.gradle
+build
+out
+projectFilesBackup*
+target

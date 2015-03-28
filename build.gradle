@@ -1,0 +1,50 @@
+allprojects {
+  apply plugin: 'idea'
+  apply plugin: 'java'
+  apply plugin: 'scala'
+
+  ext.scalaRelease = '2.10'
+
+  repositories {
+    mavenCentral()
+  }
+
+  sourceSets {
+    // Fixes to make a mixed scala/java project work
+    // From: http://chrismarks.wordpress.com/2013/07/31/compiling-a-mixed-scala-project-with-gradle/
+    main {
+      scala.srcDir("src/main/java")
+      java.srcDirs = []
+    }
+    test {
+      scala.srcDir("src/test/java")
+      java.srcDirs = []
+    }
+
+    integrationTest {
+      java.srcDir(file('src/it/java'))
+      scala.srcDir(file('src/it/scala'))
+      resources.srcDir(file('src/it/resources'))
+
+      compileClasspath = sourceSets.main.output + sourceSets.test.output + configurations.testRuntime
+      runtimeClasspath = output + compileClasspath
+    }
+  }
+
+  idea {
+    module {
+      testSourceDirs += [file('src/it/scala')]
+    }
+  }
+
+  dependencies {
+    // Scala Integration
+    compile("org.scala-lang:scala-compiler:${scalaRelease}.4")
+    compile("org.scala-lang:scala-library:${scalaRelease}.4")
+
+    // Testing
+    testCompile("org.specs2:specs2_${scalaRelease}:2.4.17") {
+      exclude group: 'org.scalaz.stream'
+    }
+  }
+}
