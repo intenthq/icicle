@@ -26,11 +26,6 @@ public class TestRedis implements Redis {
   }
 
   @Override
-  public boolean exists(final String key) {
-    return jedis.exists(key);
-  }
-
-  @Override
   public String loadLuaScript(final String luaScript) {
     return jedis.scriptLoad(luaScript);
   }

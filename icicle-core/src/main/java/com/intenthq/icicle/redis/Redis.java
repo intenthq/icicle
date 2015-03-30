@@ -11,7 +11,6 @@ import java.util.List;
  * RoundRobinRedisPool instance.
  */
 public interface Redis {
-  boolean exists(final String key);
   String loadLuaScript(final String luaScript);
   Optional<IcicleRedisResponse> evalLuaScript(final String luaScriptSha, final List<String> arguments);
 }

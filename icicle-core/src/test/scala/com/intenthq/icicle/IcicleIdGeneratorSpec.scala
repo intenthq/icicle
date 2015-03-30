@@ -16,6 +16,7 @@ import org.specs2.specification.Scope
 class IcicleIdGeneratorSpec extends Specification {
   "#generateId" should {
     "retry a default of 5 times" in new Context {
+      redis.evalLuaScript(any, any) returns Optional.absent[IcicleRedisResponse]
       new IcicleIdGenerator(roundRobinRedisPool).generateId
 
       // The number is double because if the eval fails the first time it loads and tries to eval again.
@@ -23,6 +24,7 @@ class IcicleIdGeneratorSpec extends Specification {
     }
 
     "retry `maximumAttempts` times if passed" in new Context {
+      redis.evalLuaScript(any, any) returns Optional.absent[IcicleRedisResponse]
       new IcicleIdGenerator(roundRobinRedisPool, 10).generateId
 
       // The number is double because if the eval fails the first time it loads and tries to eval again.
@@ -30,6 +32,8 @@ class IcicleIdGeneratorSpec extends Specification {
     }
 
     "return an absent optional if `maximumAttempts` is exceeded" in new Context {
+      redis.evalLuaScript(any, any) returns Optional.absent[IcicleRedisResponse]
+
       val result = underTest.generateId
 
       result.isPresent must beFalse

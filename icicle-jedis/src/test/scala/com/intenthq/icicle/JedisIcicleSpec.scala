@@ -24,53 +24,6 @@ class JedisIcicleSpec extends Specification {
     }
   }
 
-  "#exists" should {
-    val testKey = "test"
-
-    "call to redis to check the existence of the passed key" in new Context {
-      underTest.exists(testKey)
-
-      there was one(jedis).exists(testKey)
-    }
-
-    "returns true if it exists" in new Context {
-      jedis.exists(testKey) returns true
-
-      underTest.exists(testKey) must beTrue
-    }
-
-    "returns false if it does not exist" in new Context {
-      jedis.exists(testKey) returns false
-
-      underTest.exists(testKey) must beFalse
-    }
-
-    "returns the resource if the call was successful" in new Context {
-      underTest.exists(testKey)
-
-      there was one(jedisPool).returnResource(jedis)
-    }
-
-    "returns the resource as failed if the call threw an exception" in new Context {
-      jedis.exists(testKey) throws new RuntimeException
-
-      try {
-        underTest.exists(testKey)
-      } catch {
-        case e: RuntimeException => false
-      }
-
-      there was one(jedisPool).returnBrokenResource(jedis)
-    }
-
-    "rethrows any exception the call throws" in new Context {
-      val testScript = "foo"
-      jedis.scriptLoad(testScript) throws new RuntimeException
-
-      underTest.loadLuaScript(testScript) must throwA[RuntimeException]
-    }
-  }
-
   "#loadLuaScript" should {
     "call to redis to load the script" in new Context {
       underTest.loadLuaScript(luaScript)

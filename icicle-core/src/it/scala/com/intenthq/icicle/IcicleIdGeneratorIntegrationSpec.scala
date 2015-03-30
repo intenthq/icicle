@@ -15,8 +15,8 @@ class IcicleIdGeneratorIntegrationSpec extends Specification {
   sequential
 
   "The IcicleIdGenerator" should {
-    "handle generating 10,000 unique and k-sorted IDs successfully" in new Context {
-      val n = 10000
+    "handle generating 100,000 unique and k-sorted IDs successfully" in new Context {
+      val n = 100000
       val ids = (1 to n).map { _ => underTest.generateId() }
 
       // They were all successful...
@@ -35,10 +35,10 @@ class IcicleIdGeneratorIntegrationSpec extends Specification {
     }
 
     "handle overflowing the sequence by rolling it over" in new Context {
-      redis.set(sequenceRedisKey, "4095")
+      redis.set(sequenceRedisKey, "4094")
 
       (underTest.generateId().isPresent must beTrue) and
-        (redis.get(sequenceRedisKey) must_== "0")
+        (redis.get(sequenceRedisKey) must_== "-1")
     }
   }
 

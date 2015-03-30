@@ -50,22 +50,6 @@ public class JedisIcicle implements Redis {
   }
 
   /**
-   * Return true if the given key exists, otherwise false.
-   *
-   * @param key The key to check the existence of.
-   * @return True if the given key exists, otherwise false.
-   */
-  @Override
-  public boolean exists(final String key) {
-    return withJedis(new Function<Jedis, Boolean>() {
-      @Override
-      public Boolean apply(final Jedis jedis) {
-        return jedis.exists(key);
-      }
-    });
-  }
-
-  /**
    * Load the given Lua script into Redis.
    *
    * @param luaScript The Lua script to load into Redis.

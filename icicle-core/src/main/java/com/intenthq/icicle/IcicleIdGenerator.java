@@ -38,7 +38,6 @@ public class IcicleIdGenerator {
 
   private static final String LUA_SCRIPT_RESOURCE_PATH = "/id-generation.lua";
   private static final int DEFAULT_MAX_ATTEMPTS = 5;
-  private static final String LOCK_KEY = "icicle-generator-lock";
 
   // We specify an custom epoch that we will use to fit our timestamps within the bounds of the 41 bits we have
   // available. This gives us a range of ~69 years within which we can generate IDs.
@@ -116,7 +115,14 @@ public class IcicleIdGenerator {
         if (result.isPresent()) {
           return result;
         }
-      } catch (RuntimeException e) {
+
+        // Exponentially back-off the more we have to retry. The sleep time will be of the sequence:
+        //
+        // > 0, 1, 4, 9, 16, 25, 36, 49, 64, 81, ...
+        //
+        // This avoids a total run on the cluster of ID generation Redis servers.
+        Thread.sleep(retries * retries);
+      } catch (RuntimeException | InterruptedException e) {
         logger.warn("Failed to generate ID. Underlying exception was: {}", e);
       }
     }
@@ -133,10 +139,9 @@ public class IcicleIdGenerator {
    * null.
    */
   private Optional<Id> generateIdUsingRedis(final Redis redis) {
-    checkAndWaitForLock(redis);
     Optional<IcicleRedisResponse> optionalIcicleRedisResponse = executeOrLoadLuaScript(redis);
 
-    if (optionalIcicleRedisResponse == null || !optionalIcicleRedisResponse.isPresent()) {
+    if (!optionalIcicleRedisResponse.isPresent()) {
       return Optional.absent();
     }
 
@@ -189,7 +194,7 @@ public class IcicleIdGenerator {
     Optional<IcicleRedisResponse> response = executeLuaScript(redis);
 
     // Great! The script was already loaded and ran, so we saved a call.
-    if (response != null && response.isPresent()) {
+    if (response.isPresent()) {
       return response;
     }
 
@@ -208,8 +213,7 @@ public class IcicleIdGenerator {
   private Optional<IcicleRedisResponse> executeLuaScript(final Redis redis) {
     List<String> args = Arrays.asList(String.valueOf(MAX_SEQUENCE),
                                       String.valueOf(MIN_LOGICAL_SHARD_ID),
-                                      String.valueOf(MAX_LOGICAL_SHARD_ID),
-                                      LOCK_KEY);
+                                      String.valueOf(MAX_LOGICAL_SHARD_ID));
     return redis.evalLuaScript(luaScriptSha, args);
   }
 
@@ -226,17 +230,6 @@ public class IcicleIdGenerator {
           "The logical shard ID set in Redis is less than " + String.valueOf(MIN_LOGICAL_SHARD_ID)
               + " or is greater than the supported maximum of "
               + String.valueOf(MAX_LOGICAL_SHARD_ID));
-    }
-  }
-
-  private void checkAndWaitForLock(final Redis redis) {
-    if (redis.exists(LOCK_KEY)) {
-      try {
-        logger.error("Lock key exists, so having to wait for a millisecond before continuing with ID generation...");
-        Thread.sleep(1);
-      } catch(InterruptedException e) {
-        // We're only sleeping for a millisecond, so this really doesn't matter.
-      }
     }
   }
 }

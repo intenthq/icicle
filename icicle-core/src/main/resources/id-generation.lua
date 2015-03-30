@@ -1,24 +1,26 @@
+local lock_key = 'icicle-generator-lock'
 local sequence_key = 'icicle-generator-sequence'
 local logical_shard_id_key = 'icicle-generator-logical-shard-id'
 
 local max_sequence = tonumber(KEYS[1])
 local min_logical_shard_id = tonumber(KEYS[2])
 local max_logical_shard_id = tonumber(KEYS[3])
-local lock_key = KEYS[4]
 
 if redis.call('EXISTS', lock_key) == 1 then
-  redis.log(redis.LOG_WARNING, 'Could not proceed with ID generation, lock key is present.')
-  return redis.error_reply('Could not proceed with ID generation, lock key is present.')
+  redis.log(redis.LOG_INFO, 'Icicle: Cannot generate ID, waiting for lock to expire.')
+  return redis.error_reply('Icicle: Cannot generate ID, waiting for lock to expire.')
 end
 
 local sequence = redis.call('INCR', sequence_key)
 local logical_shard_id = tonumber(redis.call('GET', logical_shard_id_key)) or -1
 
-if sequence == max_sequence then
+if sequence >= max_sequence then
   --[[
   As the sequence is about to roll around, we can't generate another ID until we're sure we're not in the same
   millisecond since we last rolled. This is because we may have already generated an ID with the same time and
-  sequence, and we cannot allow even the smallest possibility of duplicates.
+  sequence, and we cannot allow even the smallest possibility of duplicates. It's also because if we roll the sequence
+  around, we will start generating IDs with smaller values than the ones previously in this millisecond - that would
+  break our k-ordering guarantees!
 
   The only way we can handle this is to block for a millisecond, as we can't store the time due the purity constraints
   of Redis Lua scripts.
@@ -30,16 +32,9 @@ if sequence == max_sequence then
   Note that it only blocks even it rolled around *not* in the same millisecond; this is because unless we do this, the
   IDs won't remain ordered.
   --]]
-  redis.log(redis.LOG_WARNING, 'Writing ID generation lock key.')
+  redis.log(redis.LOG_INFO, 'Icicle: Rolling sequence back to the start, locking for 1ms.')
+  redis.call('SET', sequence_key, '-1')
   redis.call('PSETEX', lock_key, 1, 'lock')
-elseif sequence > max_sequence then
-  --[[
-  Now this next block will get called on the next millisecond, and we can finally wrap the sequence around to 0 and
-  continue generating IDs where we left off!
-  --]]
-  sequence = 0
-  redis.call('SET', sequence_key, '0')
-  redis.log(redis.LOG_WARNING, 'Rolling ID generation sequence back to 0.')
 end
 
 --[[
