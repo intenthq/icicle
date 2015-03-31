@@ -5,7 +5,7 @@ Icicle is a project to generate 64-bit, k-sortable unique IDs in a distributed f
 
 Implementations of Icicle could be written in any language using just a [Redis client library](http://redis.io/clients) and [the Lua script](icicle-core/src/main/resources/id-generation.lua).
 
-[Read more about Icicle on the Intent HQ Engineering blog](http://engineering.intenthq.com/2015/04/icicle-distributed-id-generation-with-redis-lua/).
+[Read more about Icicle on the Intent HQ Engineering blog](http://engineering.intenthq.com/2015/03/icicle-distributed-id-generation-with-redis-lua/).
 
 ## Using Icicle
 
