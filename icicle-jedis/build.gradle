@@ -1,9 +1,0 @@
-version = '1.0.0'
-
-dependencies {
-  compile project(":icicle-core")
-
-  compile "com.google.code.findbugs:jsr305:2.0.3"
-  compile "com.google.guava:guava:17.0"
-  compile "redis.clients:jedis:2.4.2"
-}
