@@ -1,5 +1,10 @@
 ---
-language: java
+language: scala
+scala:
+  - 2.11.6
+script:
+  - sbt ++2.11.6 test
+  - sbt ++2.11.6 'it:test'
 services:
   - redis-server
 jdk:

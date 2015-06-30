@@ -16,6 +16,8 @@ class IcicleIdGeneratorIntegrationSpec extends Specification {
 
   "The IcicleIdGenerator" should {
     "handle generating 100,000 unique and k-sorted IDs successfully" in new Context {
+      redis.set(logicalShardIdRedisKey, "1")
+
       val n = 100000
       val ids = (1 to n).map { _ => underTest.generateId() }
 
