@@ -65,7 +65,7 @@ class JedisIcicleSpec extends Specification {
 
   "#evalLuaScript" should {
     val args = util.Arrays.asList("foo")
-    val response: java.util.List[java.lang.Long] = util.Arrays.asList(12L, 34L, 56L, 78L)
+    val response: java.util.List[java.lang.Long] = util.Arrays.asList(12L, 34L, 56L, 78L, 1L)
 
     "call to redis to eval the script with the given args" in new Context {
       val argsAsArray: Array[String] = args.toArray(Array[String]())

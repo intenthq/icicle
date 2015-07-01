@@ -47,6 +47,15 @@ And now to generate an ID:
 Optional<Id> id = icicleIdGenerator.generateId();
 ```
 
+Or a batch of IDs;
+
+```java
+Optional<List<Id>> ids = icicleIdGenerator.generateIdBatch(10); // Get up to 10 IDs
+Optional<List<Id>> ids = icicleIdGenerator.generateIdBatch(); // Get up to 4096 IDs
+```
+
+When requesting a batch of IDs, the generator cannot always return you the amount you asked for (this is a limitation related to our strong uniqueness guarantees) - instead, it will return between `1` and `n`, where `n` is the number of IDs you asked for in the batch. You may wish to check how many you actually received, and request more until you have the total you need.
+
 ### With Another Redis Library
 
 You can use Icicle with any Redis library you please. All you have to do is implement the `Redis` interface, and you can then use the `RoundRobinRedisPool` and `IcicleIdGenerator` classes as above with `icicle-jedis`.
