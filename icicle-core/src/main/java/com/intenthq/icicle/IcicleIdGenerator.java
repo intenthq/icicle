@@ -3,6 +3,7 @@ package com.intenthq.icicle;
 import com.google.common.base.Optional;
 
 import com.intenthq.icicle.exception.InvalidLogicalShardIdException;
+import com.intenthq.icicle.exception.InvalidBatchSizeException;
 import com.intenthq.icicle.exception.LuaScriptFailedToLoadException;
 import com.intenthq.icicle.redis.Redis;
 import com.intenthq.icicle.redis.IcicleRedisResponse;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -54,6 +56,8 @@ public class IcicleIdGenerator {
   private static final long MAX_LOGICAL_SHARD_ID = ~(-1L << LOGICAL_SHARD_ID_BITS);
   private static final long MIN_LOGICAL_SHARD_ID = 1L;
 
+  private static final long MAX_BATCH_SIZE = MAX_SEQUENCE + 1;
+
   private static final long ONE_MILLI_IN_MICRO_SECS = TimeUnit.MICROSECONDS.convert(1, TimeUnit.MILLISECONDS);
 
   private final RoundRobinRedisPool roundRobinRedisPool;
@@ -73,6 +77,7 @@ public class IcicleIdGenerator {
   public IcicleIdGenerator(final RoundRobinRedisPool roundRobinRedisPool) {
     this(roundRobinRedisPool, DEFAULT_MAX_ATTEMPTS);
   }
+
 
   /**
    * Create an ID generator that will operate using the given pool of Redis servers. The servers will be used in a
@@ -107,9 +112,40 @@ public class IcicleIdGenerator {
    * failed even after the retries.
    */
   public Optional<Id> generateId() {
-    for (int retries = 0; retries < maximumAttempts; retries++) {
+    Optional<List<Id>> result = generateIdBatch(1);
+
+    if (result.isPresent()) {
+      return Optional.of(result.get().get(0));
+    }
+
+    return Optional.absent();
+  }
+
+  /**
+   * Generate a batch of IDs. It will try to generate a list of IDs, retrying up to `maximumAttempts` times.
+   *
+   * @return An optional list of IDs. It will be present if it was successful, and absent if for any reason the ID generation
+   * failed even after the retries. The number of IDs may be less than or equal to the maximum sequence depending on if the
+   * sequence needs to roll in Redis.
+   */
+  public Optional<List<Id>> generateIdBatch() {
+    return generateIdBatch(MAX_BATCH_SIZE);
+  }
+
+  /**
+   * Generate a batch of IDs. It will try to generate a list of IDs, retrying up to `maximumAttempts` times.
+   *
+   * @param batchSize The number IDs to return.
+   * @return An optional list of IDs. It will be present if it was successful, and absent if for any reason the ID generation
+   * failed even after the retries. The number of IDs may be less than or equal to the batch size depending on if the
+   * sequence needs to roll in Redis.
+   */
+   public Optional<List<Id>> generateIdBatch(final long batchSize) {
+     validateBatchSize(batchSize);
+
+     for (int retries = 0; retries < maximumAttempts; retries++) {
       try {
-        Optional<Id> result = generateIdUsingRedis(roundRobinRedisPool.getNextRedis());
+        Optional<List<Id>> result = generateIdsUsingRedis(roundRobinRedisPool.getNextRedis(), batchSize);
 
         // We'll retry if the ID didn't generate for whatever reason.
         if (result.isPresent()) {
@@ -135,11 +171,12 @@ public class IcicleIdGenerator {
    * Generate an ID using the given redis instance.
    *
    * @param redis The redis instance to use to generate an ID with.
-   * @return An optional ID. It will be present if it was successful, and absent if for any reason the response was
-   * null.
+   * @param batchSize The number IDs to return.
+   * @return An optional list of IDs. It will be present if it was successful, and absent if for any reason the response was
+   * null. The number of IDs may be less than or equal to the batch size depending on if the sequence needs to roll in Redis.
    */
-  private Optional<Id> generateIdUsingRedis(final Redis redis) {
-    Optional<IcicleRedisResponse> optionalIcicleRedisResponse = executeOrLoadLuaScript(redis);
+  private Optional<List<Id>> generateIdsUsingRedis(final Redis redis, final long batchSize) {
+    Optional<IcicleRedisResponse> optionalIcicleRedisResponse = executeOrLoadLuaScript(redis, batchSize);
 
     if (!optionalIcicleRedisResponse.isPresent()) {
       return Optional.absent();
@@ -156,21 +193,26 @@ public class IcicleIdGenerator {
     long logicalShardId = icicleRedisResponse.getLogicalShardId();
     validateLogicalShardId(logicalShardId);
 
-    // Here's the fun bit-shifting. The purpose of this is to get a 64-bit ID of the following
-    // format:
-    //
-    //  ABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBCCCCCCCCCCDDDDDDDDDDDD
-    //
-    // Where:
-    //   * A is the reserved signed bit of a Java long.
-    //   * B is the timestamp in milliseconds since custom epoch bits, 41 in total.
-    //   * C is the logical shard ID, 10 bits in total.
-    //   * D is the sequence, 12 bits in total.
-    long id = ((timestamp - CUSTOM_EPOCH) << TIMESTAMP_SHIFT)
-        | (logicalShardId << LOGICAL_SHARD_ID_SHIFT)
-        | icicleRedisResponse.getSequence();
+    List<Id> ids = new ArrayList<>();
+    for (long i = icicleRedisResponse.getStartSequence(); i <= icicleRedisResponse.getEndSequence(); i ++) {
+      // Here's the fun bit-shifting. The purpose of this is to get a 64-bit ID of the following
+      // format:
+      //
+      //  ABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBCCCCCCCCCCDDDDDDDDDDDD
+      //
+      // Where:
+      //   * A is the reserved signed bit of a Java long.
+      //   * B is the timestamp in milliseconds since custom epoch bits, 41 in total.
+      //   * C is the logical shard ID, 10 bits in total.
+      //   * D is the sequence, 12 bits in total.
+      long id = ((timestamp - CUSTOM_EPOCH) << TIMESTAMP_SHIFT)
+          | (logicalShardId << LOGICAL_SHARD_ID_SHIFT)
+          | i;
 
-    return Optional.of(new Id(id, timestamp));
+      ids.add(new Id(id, timestamp));
+    }
+
+    return Optional.of(ids);
   }
 
   /**
@@ -188,10 +230,11 @@ public class IcicleIdGenerator {
    *     again, giving us a small performance gain.
    *
    * @param redis The redis instance to use to execute or load the Lua script with.
+   * @param batchSize The number to increment the sequence by in Redis.
    * @return The result of executing the Lua script.
    */
-  private Optional<IcicleRedisResponse> executeOrLoadLuaScript(final Redis redis) {
-    Optional<IcicleRedisResponse> response = executeLuaScript(redis);
+  private Optional<IcicleRedisResponse> executeOrLoadLuaScript(final Redis redis, final long batchSize) {
+    Optional<IcicleRedisResponse> response = executeLuaScript(redis, batchSize);
 
     // Great! The script was already loaded and ran, so we saved a call.
     if (response.isPresent()) {
@@ -200,20 +243,22 @@ public class IcicleIdGenerator {
 
     // Otherwise we need to load and try again, failing if it doesn't work the second time.
     redis.loadLuaScript(luaScript);
-    return executeLuaScript(redis);
+    return executeLuaScript(redis, batchSize);
   }
 
   /**
    * Execute the ID generation Lua script on the given redis instance, returning the results.
    *
    * @param redis The redis instance to use to execute the Lua script with.
+   * @param batchSize The number to increment the sequence by in Redis.
    * @return The optional result of executing the Lua script. Absent if the Lua script referenced by the SHA was missing
    * when it was attempted to be executed.
    */
-  private Optional<IcicleRedisResponse> executeLuaScript(final Redis redis) {
+  private Optional<IcicleRedisResponse> executeLuaScript(final Redis redis, final long batchSize) {
     List<String> args = Arrays.asList(String.valueOf(MAX_SEQUENCE),
                                       String.valueOf(MIN_LOGICAL_SHARD_ID),
-                                      String.valueOf(MAX_LOGICAL_SHARD_ID));
+                                      String.valueOf(MAX_LOGICAL_SHARD_ID),
+                                      String.valueOf(batchSize));
     return redis.evalLuaScript(luaScriptSha, args);
   }
 
@@ -230,6 +275,22 @@ public class IcicleIdGenerator {
           "The logical shard ID set in Redis is less than " + String.valueOf(MIN_LOGICAL_SHARD_ID)
               + " or is greater than the supported maximum of "
               + String.valueOf(MAX_LOGICAL_SHARD_ID));
+    }
+  }
+
+  /**
+   * Check that the given batch size is within the bounds that we allow. This is important to
+   * check, as otherwise someone may set the batch size to a negative causing the sequencing
+   * in Redis to fail.
+   *
+   * @param batchSize The batch size as specified by the user.
+   */
+   private void validateBatchSize(final long batchSize) {
+    if (batchSize <= 0 || batchSize > MAX_BATCH_SIZE) {
+      throw new InvalidBatchSizeException(
+          "The batch size is less than 1"
+              + " or is greater than the supported maximum of "
+              + String.valueOf(MAX_BATCH_SIZE));
     }
   }
 }

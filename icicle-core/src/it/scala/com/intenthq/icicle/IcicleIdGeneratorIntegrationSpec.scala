@@ -10,6 +10,8 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.Scope
 
+import scala.collection.JavaConversions._
+
 @RunWith(classOf[JUnitRunner])
 class IcicleIdGeneratorIntegrationSpec extends Specification {
   sequential
@@ -29,7 +31,57 @@ class IcicleIdGeneratorIntegrationSpec extends Specification {
         (ids.map(_.get).map(_.getId) must beSorted)
     }
 
+    "handle generating over 100,000 unique and k-sorted IDs in batch successfully" in new Context {
+      redis.set(logicalShardIdRedisKey, "1")
+      redis.set(sequenceRedisKey, "-1")
+
+      val n = 100000
+
+      var ids = List[Id]()
+      while(ids.size <= n) {
+        val result = underTest.generateIdBatch()
+        if(result.isPresent())
+          ids ++= result.get()
+      }
+
+      // They were all unique...
+      (ids.toSet.size must beGreaterThan(n)) and
+        // And they were in order!
+        (ids.map(_.getId) must beSorted)
+    }
+
+    "increments the sequence by the maximum batch size part way through the sequence" in new Context {
+      val startingSequence = 4000
+      redis.set(logicalShardIdRedisKey, "1")
+      redis.set(sequenceRedisKey, startingSequence.toString)
+
+      val result = underTest.generateIdBatch()
+      (result.isPresent must beTrue) and
+        (redis.get(sequenceRedisKey) must_== "-1") and
+        (result.get().size must_== 95)
+    }
+
+    "increments the sequence by 10" in new Context {
+      redis.set(logicalShardIdRedisKey, "1")
+      redis.set(sequenceRedisKey, "-1")
+
+      (underTest.generateIdBatch(10).isPresent must beTrue) and
+        (redis.get(sequenceRedisKey) must_== "9")
+    }
+
+    "increments the sequence by maximum batch size" in new Context {
+      redis.set(logicalShardIdRedisKey, "1")
+      redis.set(sequenceRedisKey, "-1")
+
+      val result = underTest.generateIdBatch()
+      (result.isPresent must beTrue) and
+        (redis.get(sequenceRedisKey) must_== "-1") and
+        (result.get().size must_== 4096) and
+        (result.get().map(_.getId) must beSorted)
+    }
+
     "increments the sequence" in new Context {
+      redis.set(logicalShardIdRedisKey, "1")
       redis.set(sequenceRedisKey, "2")
 
       (underTest.generateId().isPresent must beTrue) and
@@ -37,6 +89,7 @@ class IcicleIdGeneratorIntegrationSpec extends Specification {
     }
 
     "handle overflowing the sequence by rolling it over" in new Context {
+      redis.set(logicalShardIdRedisKey, "1")
       redis.set(sequenceRedisKey, "4094")
 
       (underTest.generateId().isPresent must beTrue) and

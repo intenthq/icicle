@@ -5,16 +5,21 @@ local logical_shard_id_key = 'icicle-generator-logical-shard-id'
 local max_sequence = tonumber(KEYS[1])
 local min_logical_shard_id = tonumber(KEYS[2])
 local max_logical_shard_id = tonumber(KEYS[3])
+local num_ids = tonumber(KEYS[4])
 
 if redis.call('EXISTS', lock_key) == 1 then
   redis.log(redis.LOG_INFO, 'Icicle: Cannot generate ID, waiting for lock to expire.')
   return redis.error_reply('Icicle: Cannot generate ID, waiting for lock to expire.')
 end
 
-local sequence = redis.call('INCR', sequence_key)
+--[[
+Increment by a set number, this can
+--]]
+local end_sequence = redis.call('INCRBY', sequence_key, num_ids)
+local start_sequence = end_sequence - num_ids + 1
 local logical_shard_id = tonumber(redis.call('GET', logical_shard_id_key)) or -1
 
-if sequence >= max_sequence then
+if end_sequence >= max_sequence then
   --[[
   As the sequence is about to roll around, we can't generate another ID until we're sure we're not in the same
   millisecond since we last rolled. This is because we may have already generated an ID with the same time and
@@ -35,6 +40,7 @@ if sequence >= max_sequence then
   redis.log(redis.LOG_INFO, 'Icicle: Rolling sequence back to the start, locking for 1ms.')
   redis.call('SET', sequence_key, '-1')
   redis.call('PSETEX', lock_key, 1, 'lock')
+  end_sequence = max_sequence
 end
 
 --[[
@@ -47,7 +53,8 @@ See the "Scripts as pure functions" section at http://redis.io/commands/eval for
 local time = redis.call('TIME')
 
 return {
-  sequence, -- Doesn't need conversion, the result of INCR or the variable set is always a number.
+  start_sequence,
+  end_sequence, -- Doesn't need conversion, the result of INCR or the variable set is always a number.
   logical_shard_id,
   tonumber(time[1]),
   tonumber(time[2])
