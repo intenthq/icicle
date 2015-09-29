@@ -2,7 +2,7 @@ import sbt._
 import Keys._
 
 object Commons {
-  val appVersion = "1.1.0"
+  val appVersion = "1.1.1"
 
   val pomInfo = (
     <url>https://github.com/intenthq/icicle</url>
