@@ -35,7 +35,7 @@ public class RoundRobinRedisPool {
    *
    * @return The instance of Redis as pulled from the pool.
    */
-  public Redis getNextRedis() {
+  public synchronized Redis getNextRedis() {
     if (!redisPoolIterator.hasNext()) {
       redisPoolIterator = redisServers.iterator();
     }
