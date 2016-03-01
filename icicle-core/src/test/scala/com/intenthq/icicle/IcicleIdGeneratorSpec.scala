@@ -59,6 +59,18 @@ class IcicleIdGeneratorSpec extends Specification {
         (result.get.getTime must_== 1427291923000L)
     }
 
+    "construct the time portion of the ID as expected" in new Context {
+      redisResponse.getTimeSeconds returns 1401277473
+      redisResponse.getTimeMicroseconds returns 0
+      redis.evalLuaScript(any, any) returns Optional.of(redisResponse)
+
+      val result = underTest.generateId
+
+      (result.isPresent must beTrue) and
+        (result.get.getId must_== 3232200L) and
+        (result.get.getTime must_== 1427291923000L)
+    }
+
     "construct batch of IDs as expected" in new Context {
       redis.evalLuaScript(any, any) returns Optional.of(redisBatchResponse)
 
@@ -120,14 +132,14 @@ class IcicleIdGeneratorSpec extends Specification {
     val underTest = new IcicleIdGenerator(roundRobinRedisPool, 1)
 
     val redisResponse = mock[IcicleRedisResponse]
-    redisResponse.getTimeSeconds returns 1427291923
+    redisResponse.getTimeSeconds returns 1455787279
     redisResponse.getTimeMicroseconds returns 123
     redisResponse.getEndSequence returns 456
     redisResponse.getStartSequence returns 456
     redisResponse.getLogicalShardId returns 789
 
     val redisBatchResponse = mock[IcicleRedisResponse]
-    redisBatchResponse.getTimeSeconds returns 1427291923
+    redisBatchResponse.getTimeSeconds returns 1455787279
     redisBatchResponse.getTimeMicroseconds returns 123
     redisBatchResponse.getEndSequence returns 456
     redisBatchResponse.getStartSequence returns 0
