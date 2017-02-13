@@ -32,4 +32,15 @@ public class Id {
   public String toString() {
     return Long.toString(id);
   }
+
+  public String toBinaryString() {
+    StringBuilder sb = new StringBuilder();
+
+    for(int i = 0; i < Long.numberOfLeadingZeros(id); i++) {
+      sb.append('0');
+    }
+
+    sb.append(Long.toBinaryString(id));
+    return sb.toString();
+  }
 }

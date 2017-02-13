@@ -43,7 +43,9 @@ public class IcicleIdGenerator {
 
   // We specify an custom epoch that we will use to fit our timestamps within the bounds of the 41 bits we have
   // available. This gives us a range of ~69 years within which we can generate IDs.
-  private static final long CUSTOM_EPOCH = 1401277473L;
+  //
+  // This timestamp must be in milliseconds.
+  private static final long DEFAULT_CUSTOM_EPOCH = 1455788600316L;
 
   private static final int LOGICAL_SHARD_ID_BITS = 10;
   private static final int SEQUENCE_BITS = 12;
@@ -58,10 +60,13 @@ public class IcicleIdGenerator {
 
   private static final long MAX_BATCH_SIZE = MAX_SEQUENCE + 1;
 
+  private static final long ONE_SECOND_IN_MILLIS = TimeUnit.MILLISECONDS.convert(1, TimeUnit.SECONDS);
   private static final long ONE_MILLI_IN_MICRO_SECS = TimeUnit.MICROSECONDS.convert(1, TimeUnit.MILLISECONDS);
 
   private final RoundRobinRedisPool roundRobinRedisPool;
   private final int maximumAttempts;
+  private final long customEpoch;
+
   private final String luaScript;
   private final String luaScriptSha;
 
@@ -75,9 +80,8 @@ public class IcicleIdGenerator {
    * @param roundRobinRedisPool The pool of Redis servers to use for ID generation.
    */
   public IcicleIdGenerator(final RoundRobinRedisPool roundRobinRedisPool) {
-    this(roundRobinRedisPool, DEFAULT_MAX_ATTEMPTS);
+    this(roundRobinRedisPool, DEFAULT_MAX_ATTEMPTS, DEFAULT_CUSTOM_EPOCH);
   }
-
 
   /**
    * Create an ID generator that will operate using the given pool of Redis servers. The servers will be used in a
@@ -90,8 +94,28 @@ public class IcicleIdGenerator {
    * @param maximumAttempts The number of times to attempt ID generation in the case of failures.
    */
   public IcicleIdGenerator(final RoundRobinRedisPool roundRobinRedisPool, final int maximumAttempts) {
+    this(roundRobinRedisPool, maximumAttempts, DEFAULT_CUSTOM_EPOCH);
+  }
+
+
+  /**
+   * Create an ID generator that will operate using the given pool of Redis servers. The servers will be used in a
+   * round-robin fashion.
+   *
+   * Note that this constructor means that if a failure occurs, we will attempt to retry generating the ID up to the
+   * number of `maximumAttempts` specified. Specify 1 to try only once.
+   *
+   * @param roundRobinRedisPool The pool of Redis servers to use for ID generation.
+   * @param maximumAttempts The number of times to attempt ID generation in the case of failures.
+   * @param customEpoch A UNIX timestamp *in milliseconds*, used to compress the times inside IDs into 41-bits. It is
+   *                    very important that this timestamp be chosen carefully. It must be set to a time which proceeds
+   *                    any date at which you will be generating IDs. ALso, never change this epoch after beginning to
+   *                    generate IDs, or you risk collisions later down the road.
+   */
+  public IcicleIdGenerator(final RoundRobinRedisPool roundRobinRedisPool, final int maximumAttempts, final long customEpoch) {
     this.roundRobinRedisPool = roundRobinRedisPool;
     this.maximumAttempts = maximumAttempts;
+    this.customEpoch = customEpoch;
 
     try {
       InputStream is = this.getClass().getResourceAsStream(LUA_SCRIPT_RESOURCE_PATH);
@@ -187,14 +211,16 @@ public class IcicleIdGenerator {
     // We get the timestamp from Redis in seconds, but we get microseconds too, so we can make a timestamp in
     // milliseconds (losing some precision in the meantime for the sake of keeping things in 41 bits) using both of
     // these values.
-    long timestamp = (icicleRedisResponse.getTimeSeconds() * ONE_MILLI_IN_MICRO_SECS)
+    long timestamp = (icicleRedisResponse.getTimeSeconds() * ONE_SECOND_IN_MILLIS)
         + (icicleRedisResponse.getTimeMicroseconds() / ONE_MILLI_IN_MICRO_SECS);
+    long shiftedTimestamp = (timestamp - customEpoch) << TIMESTAMP_SHIFT;
 
     long logicalShardId = icicleRedisResponse.getLogicalShardId();
     validateLogicalShardId(logicalShardId);
+    long shiftedLogicalShardId = logicalShardId << LOGICAL_SHARD_ID_SHIFT;
 
     List<Id> ids = new ArrayList<>();
-    for (long i = icicleRedisResponse.getStartSequence(); i <= icicleRedisResponse.getEndSequence(); i ++) {
+    for (long sequence = icicleRedisResponse.getStartSequence(); sequence <= icicleRedisResponse.getEndSequence(); sequence ++) {
       // Here's the fun bit-shifting. The purpose of this is to get a 64-bit ID of the following
       // format:
       //
@@ -205,9 +231,7 @@ public class IcicleIdGenerator {
       //   * B is the timestamp in milliseconds since custom epoch bits, 41 in total.
       //   * C is the logical shard ID, 10 bits in total.
       //   * D is the sequence, 12 bits in total.
-      long id = ((timestamp - CUSTOM_EPOCH) << TIMESTAMP_SHIFT)
-          | (logicalShardId << LOGICAL_SHARD_ID_SHIFT)
-          | i;
+      long id = shiftedTimestamp | shiftedLogicalShardId | sequence;
 
       ids.add(new Id(id, timestamp));
     }
