@@ -121,11 +121,11 @@ public class JedisIcicle implements Redis {
 
     try {
       T result = callback.apply(jedis);
-      jedisPool.returnResource(jedis);
       return result;
     } catch (Exception e) {
-      jedisPool.returnBrokenResource(jedis);
       throw e;
+    } finally {
+      jedis.close();
     }
   }
 }

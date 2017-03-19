@@ -37,10 +37,10 @@ class JedisIcicleSpec extends Specification {
     "returns the resource if the call was successful" in new Context {
       underTest.loadLuaScript("foo")
 
-      there was one(jedisPool).returnResource(jedis)
+      there was one(jedis).close()
     }
 
-    "returns the resource as failed if the call threw an exception" in new Context {
+    "returns the resource if the call threw an exception" in new Context {
       jedis.scriptLoad(luaScript) throws new RuntimeException
 
       try {
@@ -49,7 +49,7 @@ class JedisIcicleSpec extends Specification {
         case e: RuntimeException => null
       }
 
-      there was one(jedisPool).returnBrokenResource(jedis)
+      there was one(jedis).close()
     }
 
     "rethrows any exception the call throws" in new Context {
@@ -91,10 +91,10 @@ class JedisIcicleSpec extends Specification {
 
       underTest.evalLuaScript(sha, args)
 
-      there was one(jedisPool).returnResource(jedis)
+      there was one(jedis).close()
     }
 
-    "returns the resource as failed if the call threw an exception" in new Context {
+    "returns the resource if the call threw an exception" in new Context {
       jedis.evalsha(any, any, anyString) throws new RuntimeException
 
       try {
@@ -103,7 +103,7 @@ class JedisIcicleSpec extends Specification {
         case e: RuntimeException => null
       }
 
-      there was one(jedisPool).returnBrokenResource(jedis)
+      there was one(jedis).close()
     }
 
     "rethrows any exception the call throws" in new Context {
