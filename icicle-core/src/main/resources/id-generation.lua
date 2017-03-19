@@ -8,7 +8,7 @@ local max_logical_shard_id = tonumber(KEYS[3])
 local num_ids = tonumber(KEYS[4])
 
 if redis.call('EXISTS', lock_key) == 1 then
-  redis.log(redis.LOG_INFO, 'Icicle: Cannot generate ID, waiting for lock to expire.')
+  redis.log(redis.LOG_NOTICE, 'Icicle: Cannot generate ID, waiting for lock to expire.')
   return redis.error_reply('Icicle: Cannot generate ID, waiting for lock to expire.')
 end
 
@@ -37,7 +37,7 @@ if end_sequence >= max_sequence then
   Note that it only blocks even it rolled around *not* in the same millisecond; this is because unless we do this, the
   IDs won't remain ordered.
   --]]
-  redis.log(redis.LOG_INFO, 'Icicle: Rolling sequence back to the start, locking for 1ms.')
+  redis.log(redis.LOG_NOTICE, 'Icicle: Rolling sequence back to the start, locking for 1ms.')
   redis.call('SET', sequence_key, '-1')
   redis.call('PSETEX', lock_key, 1, 'lock')
   end_sequence = max_sequence

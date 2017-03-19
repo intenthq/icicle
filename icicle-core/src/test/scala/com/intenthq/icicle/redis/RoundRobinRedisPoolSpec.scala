@@ -2,14 +2,11 @@ package com.intenthq.icicle.redis
 
 import java.util
 
-import org.junit.runner.RunWith
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
-import org.specs2.runner.JUnitRunner
 import org.specs2.specification.Scope
 
-@RunWith(classOf[JUnitRunner])
 class RoundRobinRedisPoolSpec extends Specification {
   "constructor" should {
     "throw exception if null list of servers given" in {

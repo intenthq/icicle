@@ -26,7 +26,7 @@ object Commons {
   )
 
   val settings: Seq[Def.Setting[_]] = Defaults.itSettings ++ Seq(
-    scalaVersion := "2.11.6",
+    scalaVersion := "2.11.8",
     organization := "com.intenthq.icicle",
     version := appVersion,
     publishMavenStyle := true,
@@ -34,7 +34,6 @@ object Commons {
     autoScalaLibrary := false,
     publishArtifact in Test := false,
     pomIncludeRepository := { _ => false },
-    resolvers += "Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases",
     publishTo := {
       val nexus = "https://oss.sonatype.org/"
       if (isSnapshot.value)
@@ -45,8 +44,9 @@ object Commons {
     pomExtra := pomInfo,
     resolvers += Opts.resolver.mavenLocalFile,
     libraryDependencies ++= Seq(
-      "com.google.guava" % "guava" % "17.0",
-      "org.specs2" %% "specs2" % "2.4.17" % "it,test"
+      "com.google.guava" % "guava" % "21.0",
+      "org.specs2" %% "specs2-core" % "3.8.9" % "it,test",
+      "org.specs2" %% "specs2-mock" % "3.8.9" % "it,test"
     )
   )
 }

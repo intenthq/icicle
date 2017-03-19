@@ -5,16 +5,13 @@ import java.util
 import com.google.common.base.Optional
 import com.intenthq.icicle.exception.{InvalidLogicalShardIdException, InvalidBatchSizeException}
 import com.intenthq.icicle.redis.{IcicleRedisResponse, Redis, RoundRobinRedisPool}
-import org.junit.runner.RunWith
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
-import org.specs2.runner.JUnitRunner
 import org.specs2.specification.Scope
 
 import scala.collection.JavaConversions._
 
-@RunWith(classOf[JUnitRunner])
 class IcicleIdGeneratorSpec extends Specification {
   "#generateId" should {
     "retry a default of 5 times" in new Context {
@@ -55,20 +52,8 @@ class IcicleIdGeneratorSpec extends Specification {
       val result = underTest.generateId
 
       (result.isPresent must beTrue) and
-        (result.get.getId must_== 5980618838099710408L) and
-        (result.get.getTime must_== 1427291923000L)
-    }
-
-    "construct the time portion of the ID as expected" in new Context {
-      redisResponse.getTimeSeconds returns 1401277473
-      redisResponse.getTimeMicroseconds returns 0
-      redis.evalLuaScript(any, any) returns Optional.of(redisResponse)
-
-      val result = underTest.generateId
-
-      (result.isPresent must beTrue) and
-        (result.get.getId must_== 3232200L) and
-        (result.get.getTime must_== 1427291923000L)
+        (result.get.getId must_== 143322835047240136L) and
+        (result.get.getTime must_== 1489959427000L)
     }
 
     "construct batch of IDs as expected" in new Context {
@@ -132,14 +117,14 @@ class IcicleIdGeneratorSpec extends Specification {
     val underTest = new IcicleIdGenerator(roundRobinRedisPool, 1)
 
     val redisResponse = mock[IcicleRedisResponse]
-    redisResponse.getTimeSeconds returns 1455787279
+    redisResponse.getTimeSeconds returns 1489959427
     redisResponse.getTimeMicroseconds returns 123
     redisResponse.getEndSequence returns 456
     redisResponse.getStartSequence returns 456
     redisResponse.getLogicalShardId returns 789
 
     val redisBatchResponse = mock[IcicleRedisResponse]
-    redisBatchResponse.getTimeSeconds returns 1455787279
+    redisBatchResponse.getTimeSeconds returns 1489959427
     redisBatchResponse.getTimeMicroseconds returns 123
     redisBatchResponse.getEndSequence returns 456
     redisBatchResponse.getStartSequence returns 0

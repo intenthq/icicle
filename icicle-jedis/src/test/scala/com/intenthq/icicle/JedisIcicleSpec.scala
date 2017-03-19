@@ -6,14 +6,11 @@ import _root_.redis.clients.jedis.exceptions.JedisDataException
 import _root_.redis.clients.jedis.{Jedis, JedisPool}
 import com.google.common.base.Optional
 import com.intenthq.icicle.redis.IcicleRedisResponse
-import org.junit.runner.RunWith
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
-import org.specs2.runner.JUnitRunner
 import org.specs2.specification.Scope
 
-@RunWith(classOf[JUnitRunner])
 class JedisIcicleSpec extends Specification {
   val luaScript = "foo"
   val sha = "abcdef1234567890"
