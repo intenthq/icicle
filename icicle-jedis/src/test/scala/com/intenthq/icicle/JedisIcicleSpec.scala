@@ -6,14 +6,11 @@ import _root_.redis.clients.jedis.exceptions.JedisDataException
 import _root_.redis.clients.jedis.{Jedis, JedisPool}
 import com.google.common.base.Optional
 import com.intenthq.icicle.redis.IcicleRedisResponse
-import org.junit.runner.RunWith
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
-import org.specs2.runner.JUnitRunner
 import org.specs2.specification.Scope
 
-@RunWith(classOf[JUnitRunner])
 class JedisIcicleSpec extends Specification {
   val luaScript = "foo"
   val sha = "abcdef1234567890"
@@ -40,10 +37,10 @@ class JedisIcicleSpec extends Specification {
     "returns the resource if the call was successful" in new Context {
       underTest.loadLuaScript("foo")
 
-      there was one(jedisPool).returnResource(jedis)
+      there was one(jedis).close()
     }
 
-    "returns the resource as failed if the call threw an exception" in new Context {
+    "returns the resource if the call threw an exception" in new Context {
       jedis.scriptLoad(luaScript) throws new RuntimeException
 
       try {
@@ -52,7 +49,7 @@ class JedisIcicleSpec extends Specification {
         case e: RuntimeException => null
       }
 
-      there was one(jedisPool).returnBrokenResource(jedis)
+      there was one(jedis).close()
     }
 
     "rethrows any exception the call throws" in new Context {
@@ -94,10 +91,10 @@ class JedisIcicleSpec extends Specification {
 
       underTest.evalLuaScript(sha, args)
 
-      there was one(jedisPool).returnResource(jedis)
+      there was one(jedis).close()
     }
 
-    "returns the resource as failed if the call threw an exception" in new Context {
+    "returns the resource if the call threw an exception" in new Context {
       jedis.evalsha(any, any, anyString) throws new RuntimeException
 
       try {
@@ -106,7 +103,7 @@ class JedisIcicleSpec extends Specification {
         case e: RuntimeException => null
       }
 
-      there was one(jedisPool).returnBrokenResource(jedis)
+      there was one(jedis).close()
     }
 
     "rethrows any exception the call throws" in new Context {

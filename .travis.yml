@@ -1,13 +1,11 @@
 ---
 language: scala
 scala:
-  - 2.11.6
+  - 2.11.8
 script:
-  - sbt ++2.11.6 test
-  - sbt ++2.11.6 'it:test'
+  - sbt ++2.11.8 test
+  - sbt ++2.11.8 'it:test'
 services:
   - redis-server
 jdk:
   - oraclejdk8
-  - oraclejdk7
-  - openjdk7

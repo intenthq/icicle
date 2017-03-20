@@ -3,16 +3,13 @@ package com.intenthq.icicle
 import java.util
 
 import com.intenthq.icicle.redis.RoundRobinRedisPool
-import org.junit.runner.RunWith
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.mock.Mockito
 import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
 import org.specs2.specification.Scope
 
 import scala.collection.JavaConversions._
 
-@RunWith(classOf[JUnitRunner])
 class IcicleIdGeneratorIntegrationSpec extends Specification {
   sequential
 
