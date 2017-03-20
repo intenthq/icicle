@@ -7,11 +7,13 @@ Implementations of Icicle could be written in any language using just a [Redis c
 
 [Read more about Icicle on the Intent HQ Engineering blog](http://engineering.intenthq.com/2015/03/icicle-distributed-id-generation-with-redis-lua/).
 
+> **Icicle v1.x users:** There are some important breaking changes in v2.x! Please [read the release notes](https://github.com/intenthq/icicle/releases/tag/v2.0.0) for more information.
+
 ## Using Icicle
 
 ## Setup Your Redis Nodes
 
-You need to have some Redis nodes available and running to use with Icicle. They must be running Redis 3.0+ to have support for running Lua scripts. We recommend running at least 2 Redis nodes, allowing for redundancy and better performance.
+You need to have some Redis nodes available and running to use with Icicle. **Icicle works on Redis >= v2.6 as it requires Lua support.** Redis 3.x is supported and tested. We recommend running _at least_ 2 Redis nodes, allowing for redundancy and better performance.
 
 Once you have the Redis servers up and running, **you must assign a logical shard ID to each Redis instance**. This is a unique number between 0 and 1023 (inclusive) that is assigned to each node to prevent duplicate IDs:
 
