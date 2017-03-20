@@ -1,9 +1,9 @@
 package com.intenthq.icicle
 
 import java.util
+import java.util.Optional
 
-import com.google.common.base.Optional
-import com.intenthq.icicle.exception.{InvalidLogicalShardIdException, InvalidBatchSizeException}
+import com.intenthq.icicle.exception.{InvalidBatchSizeException, InvalidLogicalShardIdException}
 import com.intenthq.icicle.redis.{IcicleRedisResponse, Redis, RoundRobinRedisPool}
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.mock.Mockito
@@ -15,7 +15,7 @@ import scala.collection.JavaConversions._
 class IcicleIdGeneratorSpec extends Specification {
   "#generateId" should {
     "retry a default of 5 times" in new Context {
-      redis.evalLuaScript(any, any) returns Optional.absent[IcicleRedisResponse]
+      redis.evalLuaScript(any, any) returns Optional.empty[IcicleRedisResponse]
       new IcicleIdGenerator(roundRobinRedisPool).generateId
 
       // The number is double because if the eval fails the first time it loads and tries to eval again.
@@ -23,15 +23,15 @@ class IcicleIdGeneratorSpec extends Specification {
     }
 
     "retry `maximumAttempts` times if passed" in new Context {
-      redis.evalLuaScript(any, any) returns Optional.absent[IcicleRedisResponse]
+      redis.evalLuaScript(any, any) returns Optional.empty[IcicleRedisResponse]
       new IcicleIdGenerator(roundRobinRedisPool, 10).generateId
 
       // The number is double because if the eval fails the first time it loads and tries to eval again.
       there were exactly(20)(redis).evalLuaScript(any, any)
     }
 
-    "return an absent optional if `maximumAttempts` is exceeded" in new Context {
-      redis.evalLuaScript(any, any) returns Optional.absent[IcicleRedisResponse]
+    "return an empty optional if `maximumAttempts` is exceeded" in new Context {
+      redis.evalLuaScript(any, any) returns Optional.empty[IcicleRedisResponse]
 
       val result = underTest.generateId
 
@@ -89,7 +89,7 @@ class IcicleIdGeneratorSpec extends Specification {
     }
 
     "load the lua script if not already loaded" in new Context {
-      redis.evalLuaScript(any, any) returns Optional.absent[IcicleRedisResponse]
+      redis.evalLuaScript(any, any) returns Optional.empty[IcicleRedisResponse]
 
       underTest.generateId
 
@@ -97,7 +97,7 @@ class IcicleIdGeneratorSpec extends Specification {
     }
 
     "return an optional with ID even if the script had to be loaded" in new Context {
-      redis.evalLuaScript(any, any) returns Optional.absent[IcicleRedisResponse] thenReturn Optional.of(redisResponse)
+      redis.evalLuaScript(any, any) returns Optional.empty[IcicleRedisResponse] thenReturn Optional.of(redisResponse)
 
       val result = underTest.generateId
 
@@ -105,7 +105,7 @@ class IcicleIdGeneratorSpec extends Specification {
     }
 
     "fail if loading the script fails twice" in new Context {
-      redis.evalLuaScript(any, any) returns Optional.absent[IcicleRedisResponse]
+      redis.evalLuaScript(any, any) returns Optional.empty[IcicleRedisResponse]
 
       underTest.generateId.isPresent must beFalse
     }

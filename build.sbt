@@ -1,5 +1,7 @@
 import Commons._
 
+scalaVersion in ThisBuild := "2.11.8"
+
 lazy val root: Project = Project(
   id        = "root",
   base      = file("."),
@@ -16,10 +18,8 @@ lazy val core = (project in file("icicle-core")).
   settings(Commons.settings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "org.apache.commons" % "commons-lang3" % "3.5",
       "commons-codec" % "commons-codec" % "1.10",
-      "org.slf4j" % "slf4j-simple" % "1.7.25",
-      "commons-io" % "commons-io" % "2.5",
+      "org.slf4j" % "slf4j-api" % "1.7.25",
       "redis.clients" % "jedis" % "2.9.0" % "it,test"
     )
   )
@@ -30,7 +30,6 @@ lazy val jedis = (project in file("icicle-jedis")).
   settings(Commons.settings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "com.google.code.findbugs" % "jsr305" % "3.0.1",
       "redis.clients" % "jedis" % "2.9.0"
     )
   ).dependsOn(core)

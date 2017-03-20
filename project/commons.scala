@@ -44,7 +44,6 @@ object Commons {
     pomExtra := pomInfo,
     resolvers += Opts.resolver.mavenLocalFile,
     libraryDependencies ++= Seq(
-      "com.google.guava" % "guava" % "21.0",
       "org.specs2" %% "specs2-core" % "3.8.9" % "it,test",
       "org.specs2" %% "specs2-mock" % "3.8.9" % "it,test"
     )

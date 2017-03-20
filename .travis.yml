@@ -3,8 +3,7 @@ language: scala
 scala:
   - 2.11.8
 script:
-  - sbt ++2.11.8 test
-  - sbt ++2.11.8 'it:test'
+  - sbt ++2.11.8 test 'it:test'
 services:
   - redis-server
 jdk:
