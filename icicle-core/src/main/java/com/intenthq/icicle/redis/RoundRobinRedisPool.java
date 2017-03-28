@@ -1,7 +1,5 @@
 package com.intenthq.icicle.redis;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Iterator;
 import java.util.List;
 
@@ -22,8 +20,9 @@ public class RoundRobinRedisPool {
    * @param redisServers A list of redis servers to use.
    */
   public RoundRobinRedisPool(final List<Redis> redisServers) {
-    Preconditions.checkNotNull(redisServers);
-    Preconditions.checkArgument(redisServers.size() > 0);
+    if (redisServers.isEmpty()) {
+      throw new IllegalArgumentException("Given list of redis servers is empty.");
+    }
 
     this.redisServers = redisServers;
     this.redisPoolIterator = redisServers.iterator();

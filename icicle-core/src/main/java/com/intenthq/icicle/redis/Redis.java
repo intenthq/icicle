@@ -1,8 +1,7 @@
 package com.intenthq.icicle.redis;
 
-import com.google.common.base.Optional;
-
 import java.util.List;
+import java.util.Optional;
 
 /**
  * This interface defines operations that the ID generator needs in order to be able to work. The most common Redis

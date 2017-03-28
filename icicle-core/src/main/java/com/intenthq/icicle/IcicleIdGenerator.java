@@ -1,25 +1,26 @@
 package com.intenthq.icicle;
 
-import com.google.common.base.Optional;
-
-import com.intenthq.icicle.exception.InvalidLogicalShardIdException;
 import com.intenthq.icicle.exception.InvalidBatchSizeException;
+import com.intenthq.icicle.exception.InvalidLogicalShardIdException;
 import com.intenthq.icicle.exception.LuaScriptFailedToLoadException;
-import com.intenthq.icicle.redis.Redis;
 import com.intenthq.icicle.redis.IcicleRedisResponse;
+import com.intenthq.icicle.redis.Redis;
 import com.intenthq.icicle.redis.RoundRobinRedisPool;
-
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.ArrayList;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -118,15 +119,14 @@ public class IcicleIdGenerator {
     this.customEpoch = customEpoch;
 
     try {
-      InputStream is = this.getClass().getResourceAsStream(LUA_SCRIPT_RESOURCE_PATH);
-      this.luaScript = IOUtils.toString(is, "UTF-8");
-    } catch (IOException e) {
+      URL url = this.getClass().getResource(LUA_SCRIPT_RESOURCE_PATH);
+      Path resPath = Paths.get(url.toURI());
+      this.luaScript = new String(Files.readAllBytes(resPath), "UTF-8");
+    } catch (IOException | URISyntaxException e) {
       throw new LuaScriptFailedToLoadException("Could not load Icicle Lua script from the resources in the JAR.", e);
     }
 
-    // Lame, but we have to use the deprecated version here in order to get this running in Hadoop (which ships with
-    // commons-codec 1.4 still for some ungodly reason...)
-    this.luaScriptSha = Hex.encodeHexString(DigestUtils.sha(luaScript));
+    this.luaScriptSha = Hex.encodeHexString(DigestUtils.sha1(luaScript));
   }
 
   /**
@@ -142,7 +142,7 @@ public class IcicleIdGenerator {
       return Optional.of(result.get().get(0));
     }
 
-    return Optional.absent();
+    return Optional.empty();
   }
 
   /**
@@ -188,7 +188,7 @@ public class IcicleIdGenerator {
     }
 
     logger.error("No ID generated. ID generation failed after {} retries.", maximumAttempts);
-    return Optional.absent();
+    return Optional.empty();
   }
 
   /**
@@ -203,7 +203,7 @@ public class IcicleIdGenerator {
     Optional<IcicleRedisResponse> optionalIcicleRedisResponse = executeOrLoadLuaScript(redis, batchSize);
 
     if (!optionalIcicleRedisResponse.isPresent()) {
-      return Optional.absent();
+      return Optional.empty();
     }
 
     IcicleRedisResponse icicleRedisResponse = optionalIcicleRedisResponse.get();

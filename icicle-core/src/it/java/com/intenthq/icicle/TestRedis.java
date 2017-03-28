@@ -1,11 +1,10 @@
 package com.intenthq.icicle;
 
-import com.google.common.base.Optional;
-
 import com.intenthq.icicle.redis.IcicleRedisResponse;
 import com.intenthq.icicle.redis.Redis;
 
 import java.util.List;
+import java.util.Optional;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisDataException;
@@ -39,7 +38,7 @@ public class TestRedis implements Redis {
       List<Long> results = (List<Long>) jedis.evalsha(luaScriptSha, arguments.size(), args);
       return Optional.of(new IcicleRedisResponse(results));
     } catch (JedisDataException e) {
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 }

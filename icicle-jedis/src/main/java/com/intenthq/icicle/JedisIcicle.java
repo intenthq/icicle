@@ -1,12 +1,11 @@
 package com.intenthq.icicle;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-
 import com.intenthq.icicle.redis.Redis;
 import com.intenthq.icicle.redis.IcicleRedisResponse;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,12 +56,7 @@ public class JedisIcicle implements Redis {
    */
   @Override
   public String loadLuaScript(final String luaScript) {
-    return withJedis(new Function<Jedis, String>() {
-      @Override
-      public String apply(final Jedis jedis) {
-        return jedis.scriptLoad(luaScript);
-      }
-    });
+    return withJedis(jedis -> jedis.scriptLoad(luaScript));
   }
 
   /**
@@ -75,18 +69,15 @@ public class JedisIcicle implements Redis {
    */
   @Override
   public Optional<IcicleRedisResponse> evalLuaScript(final String luaScriptSha, final List<String> arguments) {
-    return withJedis(new Function<Jedis, Optional<IcicleRedisResponse>>() {
-      @Override
-      public Optional<IcicleRedisResponse> apply(final Jedis jedis) {
-        String[] args = arguments.toArray(new String[arguments.size()]);
+    return withJedis(jedis -> {
+      String[] args = arguments.toArray(new String[arguments.size()]);
 
-        try {
-          @SuppressWarnings("unchecked")
-          List<Long> results = (List<Long>) jedis.evalsha(luaScriptSha, arguments.size(), args);
-          return Optional.of(new IcicleRedisResponse(results));
-        } catch (JedisDataException e) {
-          return Optional.absent();
-        }
+      try {
+        @SuppressWarnings("unchecked")
+        List<Long> results = (List<Long>) jedis.evalsha(luaScriptSha, arguments.size(), args);
+        return Optional.of(new IcicleRedisResponse(results));
+      } catch (JedisDataException e) {
+        return Optional.empty();
       }
     });
   }
@@ -97,7 +88,7 @@ public class JedisIcicle implements Redis {
    *
    * @param hostAndPort A host and port string for a Redis instance to use for ID generation, of the format "host:port".
    * @return A JedisPool instance pointing at the given host and port.
-   * @throws InvalidServerFormatException
+   * @throws InvalidServerFormatException If the given parameter is not of the format "host:port".
    */
   private JedisPool jedisPoolFromServerAndPort(final String hostAndPort) {
     Matcher matcher = SERVER_FORMAT.matcher(hostAndPort);
@@ -117,15 +108,8 @@ public class JedisIcicle implements Redis {
    * @return The value returned by the callback.
    */
   private <T> T withJedis(final Function<Jedis, T> callback) {
-    Jedis jedis = jedisPool.getResource();
-
-    try {
-      T result = callback.apply(jedis);
-      return result;
-    } catch (Exception e) {
-      throw e;
-    } finally {
-      jedis.close();
+    try (Jedis jedis = jedisPool.getResource()) {
+      return callback.apply(jedis);
     }
   }
 }

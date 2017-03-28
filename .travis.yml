@@ -3,9 +3,20 @@ language: scala
 scala:
   - 2.11.8
 script:
-  - sbt ++2.11.8 test
-  - sbt ++2.11.8 'it:test'
+  - jdk_switcher use oraclejdk8
+  - sbt ++2.11.8 test 'it:test'
 services:
   - redis-server
-jdk:
-  - oraclejdk8
+# FIXME: Version of Java 8 is (as of writing this) 1.8.0_31-b13. This does not
+# contain the important fix from https://bugs.openjdk.java.net/browse/JDK-8043926
+# which otherwise means certain type bounds don't work.
+#
+# We follow the advice from https://github.com/travis-ci/travis-ci/issues/3259#issuecomment-243534696
+# to fix this below.
+# jdk:
+#   - oraclejdk8
+sudo: false
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer

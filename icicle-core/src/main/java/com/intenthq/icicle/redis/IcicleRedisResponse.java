@@ -1,11 +1,7 @@
 package com.intenthq.icicle.redis;
 
-import com.google.common.base.Preconditions;
-
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The response from the Icicle ID generation script.
@@ -40,8 +36,6 @@ public class IcicleRedisResponse {
    *                will be thrown.
    */
   public IcicleRedisResponse(final List<Long> results) {
-    Preconditions.checkNotNull(results);
-
     this.startSequence = results.get(START_SEQUENCE_INDEX);
     this.endSequence = results.get(END_SEQUENCE_INDEX);
     this.logicalShardId = results.get(LOGICAL_SHARD_ID_INDEX);
@@ -70,10 +64,19 @@ public class IcicleRedisResponse {
   }
 
   public boolean equals(final Object o) {
-    return EqualsBuilder.reflectionEquals(this, o);
+    if (this == o) return true;
+    if (o == null) return false;
+    if (getClass() != o.getClass()) return false;
+
+    IcicleRedisResponse response = (IcicleRedisResponse) o;
+    return Objects.equals(startSequence, response.getStartSequence())
+      && Objects.equals(endSequence, response.getEndSequence())
+      && Objects.equals(logicalShardId, response.getLogicalShardId())
+      && Objects.equals(timeSeconds, response.getTimeSeconds())
+      && Objects.equals(timeMicroseconds, response.getTimeMicroseconds());
   }
 
   public int hashCode() {
-    return HashCodeBuilder.reflectionHashCode(this);
+    return Objects.hash(startSequence, endSequence, logicalShardId, timeSeconds, timeMicroseconds);
   }
 }

@@ -1,10 +1,10 @@
 package com.intenthq.icicle
 
 import java.util
+import java.util.Optional
 
 import _root_.redis.clients.jedis.exceptions.JedisDataException
 import _root_.redis.clients.jedis.{Jedis, JedisPool}
-import com.google.common.base.Optional
 import com.intenthq.icicle.redis.IcicleRedisResponse
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.mock.Mockito
