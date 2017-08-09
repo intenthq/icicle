@@ -26,7 +26,7 @@ object Commons {
   )
 
   val settings: Seq[Def.Setting[_]] = Defaults.itSettings ++ Seq(
-    scalaVersion := "2.11.8",
+    scalaVersion := "2.11.11",
     organization := "com.intenthq.icicle",
     version := appVersion,
     publishMavenStyle := true,
