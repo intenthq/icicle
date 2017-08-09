@@ -12,7 +12,7 @@ import org.specs2.specification.Scope
 
 import scala.collection.JavaConversions._
 
-class IcicleIdGeneratorSpec extends Specification {
+object IcicleIdGeneratorSpec extends Specification {
   "#generateId" should {
     "retry a default of 5 times" in new Context {
       redis.evalLuaScript(any, any) returns Optional.empty[IcicleRedisResponse]

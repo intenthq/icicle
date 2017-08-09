@@ -7,7 +7,7 @@ import org.specs2.mock.Mockito
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
-class RoundRobinRedisPoolSpec extends Specification {
+object RoundRobinRedisPoolSpec extends Specification {
   "constructor" should {
     "throw exception if null list of servers given" in {
       new RoundRobinRedisPool(null) must throwA[NullPointerException]

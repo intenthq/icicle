@@ -10,7 +10,7 @@ import org.specs2.specification.Scope
 
 import scala.collection.JavaConversions._
 
-class IcicleIdGeneratorIntegrationSpec extends Specification {
+object IcicleIdGeneratorIntegrationSpec extends Specification {
   sequential
 
   "The IcicleIdGenerator" should {

@@ -11,17 +11,16 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Generates IDs using Redis that have strong guarantees of k-ordering, and include a timestamp that can be considered
@@ -32,9 +31,9 @@ import java.util.concurrent.TimeUnit;
  *
  * We are generating an ID that will be comprised of the following:
  *
- * > 41 bit time + 10 bit logical shard id + 12 bit sequence id
+ * 41 bit time + 10 bit logical shard id + 12 bit sequence id
  *
- * Note this adds to 63 bit, because the MSB is reserved in some languages and we value interoperability.
+ * Note this adds up to 63 bits, because the MSB is reserved in some languages and we value interoperability.
  */
 public class IcicleIdGenerator {
   private static final Logger logger = LoggerFactory.getLogger(IcicleIdGenerator.class);
@@ -119,10 +118,9 @@ public class IcicleIdGenerator {
     this.customEpoch = customEpoch;
 
     try {
-      URL url = this.getClass().getResource(LUA_SCRIPT_RESOURCE_PATH);
-      Path resPath = Paths.get(url.toURI());
-      this.luaScript = new String(Files.readAllBytes(resPath), "UTF-8");
-    } catch (IOException | URISyntaxException e) {
+      InputStream is = this.getClass().getResourceAsStream(LUA_SCRIPT_RESOURCE_PATH);
+      this.luaScript = new BufferedReader(new InputStreamReader(is)).lines().collect(Collectors.joining("\n"));
+    } catch (NullPointerException | UncheckedIOException e) {
       throw new LuaScriptFailedToLoadException("Could not load Icicle Lua script from the resources in the JAR.", e);
     }
 

@@ -46,6 +46,7 @@ object Commons {
     libraryDependencies ++= Seq(
       "org.specs2" %% "specs2-core" % "3.8.9" % "it,test",
       "org.specs2" %% "specs2-mock" % "3.8.9" % "it,test"
-    )
+    ),
+    exportJars := true
   )
 }
