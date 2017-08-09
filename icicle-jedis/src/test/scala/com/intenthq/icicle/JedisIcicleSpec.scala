@@ -11,7 +11,7 @@ import org.specs2.mock.Mockito
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
-class JedisIcicleSpec extends Specification {
+object JedisIcicleSpec extends Specification {
   val luaScript = "foo"
   val sha = "abcdef1234567890"
 
