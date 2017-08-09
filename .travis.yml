@@ -1,10 +1,10 @@
 ---
 language: scala
 scala:
-  - 2.11.8
+  - 2.11.11
 script:
   - jdk_switcher use oraclejdk8
-  - sbt ++2.11.8 test 'it:test'
+  - sbt ++2.11.11 test 'it:test'
 services:
   - redis-server
 # FIXME: Version of Java 8 is (as of writing this) 1.8.0_31-b13. This does not
