@@ -1,4 +1,5 @@
 # Icicle [![Build Status](https://travis-ci.org/intenthq/icicle.svg?branch=master)](https://travis-ci.org/intenthq/icicle) [![Join the chat at https://gitter.im/intenthq/icicle](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/intenthq/icicle)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fintenthq%2Ficicle.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fintenthq%2Ficicle?ref=badge_shield)
 **A distributed, k-sortable unique ID generation system using Redis and Lua.**
 
 Icicle is a project to generate 64-bit, k-sortable unique IDs in a distributed fashion by using Redis' Lua scripting.
@@ -76,3 +77,7 @@ We chose to pack our IDs in a 64-bit long, structured as follows:
 ## Kudos
 
 The name of our project was inspired by a sadly now defunct project from Twitter called "[Snowflake](https://github.com/twitter/snowflake)", from which we drew much inspiration.
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fintenthq%2Ficicle.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fintenthq%2Ficicle?ref=badge_large)
